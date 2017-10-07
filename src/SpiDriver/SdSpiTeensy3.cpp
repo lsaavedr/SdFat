@@ -37,6 +37,10 @@ void SdSpiAltDriver::begin(uint8_t chipSelectPin) {
   pinMode(m_csPin, OUTPUT);
   digitalWrite(m_csPin, HIGH);
   SPI.begin();
+
+#if USE_ADC0_LOW_NOISE
+  ADC0_SC1A = ADC_SC1_ADCH(0b11111);
+#endif
 }
 //------------------------------------------------------------------------------
 void SdSpiAltDriver::deactivate() {
@@ -62,34 +66,58 @@ void SdSpiAltDriver::deactivate() {
 //------------------------------------------------------------------------------
 /** SPI receive a byte */
 uint8_t SdSpiAltDriver::receive() {
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   SPI0_MCR |= SPI_MCR_CLR_RXF;
   SPI0_SR = SPI_SR_TCF;
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   SPI0_PUSHR = 0xFF;
   while (!(SPI0_SR & SPI_SR_TCF)) {}
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   return SPI0_POPR;
 }
 //------------------------------------------------------------------------------
 /** SPI receive multiple bytes */
 uint8_t SdSpiAltDriver::receive(uint8_t* buf, size_t n) {
   // clear any data in RX FIFO
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_CLR_RXF | SPI_MCR_PCSIS(0x1F);
 #if SPI_USE_8BIT_FRAME
   // initial number of bytes to push into TX FIFO
   int nf = n < SPI_INITIAL_FIFO_DEPTH ? n : SPI_INITIAL_FIFO_DEPTH;
   for (int i = 0; i < nf; i++) {
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_PUSHR = 0XFF;
   }
   // limit for pushing dummy data into TX FIFO
   uint8_t* limit = buf + n - nf;
   while (buf < limit) {
     while (!(SPI0_SR & SPI_SR_RXCTR)) {}
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_PUSHR = 0XFF;
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     *buf++ = SPI0_POPR;
   }
   // limit for rest of RX data
   limit += nf;
   while (buf < limit) {
     while (!(SPI0_SR & SPI_SR_RXCTR)) {}
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     *buf++ = SPI0_POPR;
   }
 #else  // SPI_USE_8BIT_FRAME
@@ -102,12 +130,21 @@ uint8_t SdSpiAltDriver::receive(uint8_t* buf, size_t n) {
   // initial number of words to push into TX FIFO
   int nf = n/2 < SPI_INITIAL_FIFO_DEPTH ? n/2 : SPI_INITIAL_FIFO_DEPTH;
   for (int i = 0; i < nf; i++) {
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_PUSHR = SPI_PUSHR_CONT | SPI_PUSHR_CTAS(1) | 0XFFFF;
   }
   uint8_t* limit = buf + n - 2*nf;
   while (buf < limit) {
     while (!(SPI0_SR & SPI_SR_RXCTR)) {}
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_PUSHR = SPI_PUSHR_CONT | SPI_PUSHR_CTAS(1) | 0XFFFF;
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     uint16_t w = SPI0_POPR;
     *buf++ = w >> 8;
     *buf++ = w & 0XFF;
@@ -116,6 +153,9 @@ uint8_t SdSpiAltDriver::receive(uint8_t* buf, size_t n) {
   limit += 2*nf;
   while (buf < limit) {
     while (!(SPI0_SR & SPI_SR_RXCTR)) {}
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     uint16_t w = SPI0_POPR;
     *buf++ = w >> 8;
     *buf++ = w & 0XFF;
@@ -126,8 +166,14 @@ uint8_t SdSpiAltDriver::receive(uint8_t* buf, size_t n) {
 //------------------------------------------------------------------------------
 /** SPI send a byte */
 void SdSpiAltDriver::send(uint8_t b) {
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   SPI0_MCR |= SPI_MCR_CLR_RXF;
   SPI0_SR = SPI_SR_TCF;
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   SPI0_PUSHR = b;
   while (!(SPI0_SR & SPI_SR_TCF)) {}
 }
@@ -135,6 +181,9 @@ void SdSpiAltDriver::send(uint8_t b) {
 /** SPI send multiple bytes */
 void SdSpiAltDriver::send(const uint8_t* buf , size_t n) {
   // clear any data in RX FIFO
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   SPI0_MCR = SPI_MCR_MSTR | SPI_MCR_CLR_RXF | SPI_MCR_PCSIS(0x1F);
 #if SPI_USE_8BIT_FRAME
   // initial number of bytes to push into TX FIFO
@@ -142,17 +191,29 @@ void SdSpiAltDriver::send(const uint8_t* buf , size_t n) {
   // limit for pushing data into TX fifo
   const uint8_t* limit = buf + n;
   for (int i = 0; i < nf; i++) {
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_PUSHR = *buf++;
   }
   // write data to TX FIFO
   while (buf < limit) {
     while (!(SPI0_SR & SPI_SR_RXCTR)) {}
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_PUSHR = *buf++;
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_POPR;
   }
   // wait for data to be sent
   while (nf) {
     while (!(SPI0_SR & SPI_SR_RXCTR)) {}
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_POPR;
     nf--;
   }
@@ -170,6 +231,9 @@ void SdSpiAltDriver::send(const uint8_t* buf , size_t n) {
   for (int i = 0; i < nf; i++) {
     uint16_t w = (*buf++) << 8;
     w |= *buf++;
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_PUSHR = SPI_PUSHR_CONT | SPI_PUSHR_CTAS(1) | w;
   }
   // write data to TX FIFO
@@ -177,12 +241,21 @@ void SdSpiAltDriver::send(const uint8_t* buf , size_t n) {
     uint16_t w = *buf++ << 8;
     w |= *buf++;
     while (!(SPI0_SR & SPI_SR_RXCTR)) {}
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_PUSHR = SPI_PUSHR_CONT | SPI_PUSHR_CTAS(1) | w;
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_POPR;
   }
   // wait for data to be sent
   while (nf) {
     while (!(SPI0_SR & SPI_SR_RXCTR)) {}
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI0_POPR;
     nf--;
   }

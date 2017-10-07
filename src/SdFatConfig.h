@@ -34,6 +34,12 @@
 #endif  // __AVR__
 //------------------------------------------------------------------------------
 /**
+ * Set SDFAT_USE_ADC0 nonzero to minimize the
+ * noise of SPI read/write (with latency lost)
+ */
+#define USE_ADC0_LOW_NOISE 1
+//------------------------------------------------------------------------------
+/**
  * Set USE_LONG_FILE_NAMES nonzero to use long file names (LFN).
  * Long File Name are limited to a maximum length of 255 characters.
  *
