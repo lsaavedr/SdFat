@@ -29,21 +29,29 @@
 
 //------------------------------------------------------------------------------
 void SdSpiAltDriver::activate() {
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   SPI.beginTransaction(m_spiSettings);
 }
 //------------------------------------------------------------------------------
 void SdSpiAltDriver::begin(uint8_t chipSelectPin) {
-  m_csPin = chipSelectPin;
-  pinMode(m_csPin, OUTPUT);
-  digitalWrite(m_csPin, HIGH);
-  SPI.begin();
-
 #if USE_ADC0_LOW_NOISE
   ADC0_SC1A = ADC_SC1_ADCH(0b11111);
 #endif
+  m_csPin = chipSelectPin;
+  pinMode(m_csPin, OUTPUT);
+  digitalWrite(m_csPin, HIGH);
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
+  SPI.begin();
 }
 //------------------------------------------------------------------------------
 void SdSpiAltDriver::deactivate() {
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   SPI.endTransaction();
 }
 //==============================================================================
@@ -270,6 +278,9 @@ void SdSpiAltDriver::send(const uint8_t* buf , size_t n) {
  * \return The byte.
  */
 uint8_t SdSpiAltDriver::receive() {
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   return SPI.transfer(0XFF);
 }
 /** Receive multiple bytes.
@@ -281,6 +292,9 @@ uint8_t SdSpiAltDriver::receive() {
  */
 uint8_t SdSpiAltDriver::receive(uint8_t* buf, size_t n) {
   for (size_t i = 0; i < n; i++) {
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     buf[i] = SPI.transfer(0XFF);
   }
   return 0;
@@ -290,6 +304,9 @@ uint8_t SdSpiAltDriver::receive(uint8_t* buf, size_t n) {
  * \param[in] b Byte to send
  */
 void SdSpiAltDriver::send(uint8_t b) {
+#if USE_ADC0_LOW_NOISE
+  while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
   SPI.transfer(b);
 }
 /** Send multiple bytes.
@@ -299,6 +316,9 @@ void SdSpiAltDriver::send(uint8_t b) {
  */
 void SdSpiAltDriver::send(const uint8_t* buf , size_t n) {
   for (size_t i = 0; i < n; i++) {
+#if USE_ADC0_LOW_NOISE
+    while (ADC0_SC1A != ADC_SC1_ADCH(0b11111)) {}
+#endif
     SPI.transfer(buf[i]);
   }
 }
